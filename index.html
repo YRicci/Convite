@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tenho uma pergunta pra você</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&display=swap">
+<style>
+:root{--bg:#FFE1EA;--ink:#4A1230;--soft:#8A4B63;--accent:#C81E5A;--on-accent:#fff;--card:#FFF4F7;--line:#4A123040;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2A0F1E;--ink:#FFE8F0;--soft:#E3A9BF;--accent:#FF6B9A;--on-accent:#2A0F1E;--card:#3B1729;--line:#FFE8F040}}
+:root[data-theme="dark"]{--bg:#2A0F1E;--ink:#FFE8F0;--soft:#E3A9BF;--accent:#FF6B9A;--on-accent:#2A0F1E;--card:#3B1729;--line:#FFE8F040}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',sans-serif;display:grid;place-items:center}
+main{width:100%;max-width:560px;padding:24px 20px}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px}
+nav button{font:inherit;font-size:.9rem;font-weight:500;color:var(--soft);background:none;border:0;border-bottom:3px solid var(--line);padding:6px 4px 6px;margin-right:6px;cursor:default}
+nav button.done{color:var(--ink);border-color:var(--ink);cursor:pointer}
+nav button.on{color:var(--accent);border-color:var(--accent);font-weight:800}
+h1{font-size:clamp(2.1rem,9vw,3.6rem);line-height:1.02;font-weight:800;margin:0 0 12px;letter-spacing:-.02em}
+p.sub{margin:0 0 28px;color:var(--soft);font-size:1.05rem;max-width:44ch}
+.panel{animation:pop .35s ease-out}
+@keyframes pop{from{transform:translateY(10px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.btn{font:inherit;font-weight:800;font-size:1.15rem;border-radius:999px;padding:14px 30px;cursor:pointer;border:3px solid var(--ink);background:var(--card);color:var(--ink);transition:transform .15s ease}
+.btn.yes{background:var(--accent);border-color:var(--accent);color:var(--on-accent);transform-origin:left center}
+.btn.no{z-index:10}
+.btn:focus-visible,nav button:focus-visible,.chip:focus-visible,a.btn:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+#msg{min-height:3.2em;margin:0 0 20px;font-size:1.2rem;font-weight:500;color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{font:inherit;font-weight:500;font-size:1.05rem;padding:12px 20px;border-radius:14px;border:2px solid var(--ink);background:var(--card);color:var(--ink);cursor:pointer}
+.chip:hover{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.chip.sel{background:var(--ink);color:var(--bg)}
+.chip{text-align:left}
+.chip small{display:block;font-size:.72rem;font-weight:500;opacity:.8;margin-top:3px;max-width:26ch}
+.fx{position:fixed;top:-2.5rem;pointer-events:none;font-size:1.8rem;z-index:20;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(115vh) rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.fx{display:none}}
+.sum{list-style:none;padding:0;margin:0 0 28px;font-size:1.15rem}
+.sum li{padding:10px 0;border-bottom:2px dashed var(--line)}
+.sum b{display:inline-block;min-width:6.5em}
+a.btn{display:inline-block;text-decoration:none}
+@media (prefers-reduced-motion:reduce){.panel{animation:none}.btn{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <nav id="tabs" aria-label="Etapas"></nav>
+  <section id="view" class="panel" aria-live="polite"></section>
+</main>
+<script>
+// ====== Personalize aqui ======
+const SEU_NOME = "Seu Nome";      // seu nome: aparece na mensagem que a pessoa envia pelo WhatsApp
+const WHATSAPP_NUMERO = "";       // opcional: DDI+DDD+número, só dígitos (ex.: 5521999999999). Vazio = a pessoa escolhe o contato
+const FRASES_NAO = [
+  "Você tem certeza? 🥺",
+  "Não gostaria de pensar melhor sobre isso? 🤔",
+  "Te garanto que vou te tratar da melhor forma possível. 💜"
+];
+const ETAPAS = [
+  {aba:"Convite", e:"💌"},
+  {aba:"Dia", e:"📅", q:"Qual dia fica bom pra você?", s:"Sem pressão. Quer dizer, só um pouquinho.", o:["🌆 Sexta","🎉 Sábado","🛋️ Domingo","🤷 Você escolhe"]},
+  {aba:"Programa", e:"🍿", q:"Vamos fazer o quê?", s:"Todas as opções incluem boa companhia.", o:["🍝 Jantar","🎬 Cinema","🍦 Sorvete","☕ Café","🚶 Caminhada","🎁 Surpresa","🏠 Minha casa, talvez?"]},
+  {aba:"Horário", e:"⏰", q:"Que horas?", s:"Última pergunta, prometo.", o:["🌅 Manhã","🍽️ Almoço","☀️ Tarde","🌇 Início da noite","🌙 Depois das 21h"]},
+  {aba:"Pronto", e:"🎉"}
+];
+// ==============================
+const NOTAS = {"🏠 Minha casa, talvez?":"Um filme, talvez um jogo a dois e mais privacidade pra gente."};
+const picks = [];
+let step = 0, nos = 0;
+const $ = s => document.querySelector(s);
+const view = $("#view"), tabs = $("#tabs");
+
+function renderTabs(){
+  tabs.innerHTML = ETAPAS.map((e,i)=>`<button data-tab="${i}" class="${i===step?'on':i<step&&i>0?'done':''}" ${i<step&&i>0?'':'disabled'}>${e.e} ${e.aba}</button>`).join("");
+}
+function render(){
+  renderTabs();
+  view.classList.remove("panel"); void view.offsetWidth; view.classList.add("panel");
+  const e = ETAPAS[step];
+  if(step===0){
+    nos = 0;
+    view.innerHTML = `<h1>Quer sair comigo? 👀</h1>
+      <p class="sub">Responda com sinceridade. Ou tente a outra opção.</p>
+      <p id="msg"></p>
+      <div class="row"><button class="btn yes" id="yes">Sim 💖</button><button class="btn no" id="no">Não 🙈</button></div>`;
+  } else if(step===ETAPAS.length-1){
+    const [dia,prog,hora] = picks;
+    const txt = `Aceito sim! 💜 Combinado: ${dia}, ${prog}, ${hora}. ${SEU_NOME}, já pode se preparar.`;
+    view.innerHTML = `<h1>Combinado! 🎉</h1>
+      <p class="sub">Agora é oficial. Confere os detalhes:</p>
+      <ul class="sum"><li><b>📅 Dia</b>${dia}</li><li><b>🍿 Programa</b>${prog}</li><li><b>⏰ Horário</b>${hora}</li></ul>
+      <a class="btn yes" target="_blank" rel="noopener" href="https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(txt)}">💬 Me avisar no WhatsApp</a>`;
+  } else {
+    view.innerHTML = `<h1>${e.q} ${e.e}</h1><p class="sub">${e.s}</p>
+      <div class="chips">${e.o.map(o=>`<button class="chip ${picks[step-1]===o?'sel':''}" data-pick="${o}">${o}${NOTAS[o]?`<small>${NOTAS[o]}</small>`:''}</button>`).join("")}</div>`;
+  }
+}
+function burst(){
+  const em=['💖','💜','🎉','✨','💘','🥰'];
+  for(let i=0;i<28;i++){
+    const s=document.createElement('span'); s.className='fx'; s.textContent=em[i%em.length];
+    s.style.left=Math.random()*96+'vw'; s.style.animationDuration=(2+Math.random()*2)+'s'; s.style.animationDelay=(Math.random()*.6)+'s';
+    document.body.appendChild(s); setTimeout(()=>s.remove(),5000);
+  }
+}
+function overlaps(a,b,pad){return !(a.right+pad<b.left||a.left-pad>b.right||a.bottom+pad<b.top||a.top-pad>b.bottom)}
+function dodge(){
+  const no=$("#no"), yes=$("#yes"), m=12;
+  no.style.position="fixed";
+  const w=no.offsetWidth, h=no.offsetHeight, yr=yes.getBoundingClientRect();
+  let x,y,tries=0;
+  do{
+    x=m+Math.random()*Math.max(0,innerWidth-w-2*m);
+    y=m+Math.random()*Math.max(0,innerHeight-h-2*m);
+    tries++;
+  }while(tries<30&&overlaps({left:x,top:y,right:x+w,bottom:y+h},yr,16));
+  no.style.left=x+"px"; no.style.top=y+"px";
+}
+document.addEventListener("click",ev=>{
+  const t=ev.target.closest("button, a"); if(!t) return;
+  if(t.id==="no"){
+    $("#msg").textContent = FRASES_NAO[nos % FRASES_NAO.length];
+    nos++;
+    dodge();
+    const yes=$("#yes"); yes.style.transform=`scale(${Math.min(1+nos*0.06,1.35)})`;
+  } else if(t.id==="yes"){
+    step=1; render(); burst();
+  } else if(t.dataset.pick){
+    picks[step-1]=t.dataset.pick; step++; setTimeout(render,200);
+    t.classList.add("sel");
+  } else if(t.dataset.tab && !t.disabled){
+    step=+t.dataset.tab; render();
+  }
+});
+render();
+</script>
+</body>
+</html>
