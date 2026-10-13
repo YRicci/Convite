@@ -13,7 +13,7 @@ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:en
 *,*::before,*::after{box-sizing:inherit}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,-apple-system,'Segoe UI',sans-serif;display:grid;place-items:center}
-main{width:100%;max-width:560px;padding:24px 20px}
+main{width:100%;max-width:560px;padding:24px 20px;position:relative;z-index:1}
 nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px}
 nav button{font:inherit;font-size:.9rem;font-weight:500;color:var(--soft);background:none;border:0;border-bottom:3px solid var(--line);padding:6px 4px 6px;margin-right:6px;cursor:default}
 nav button.done{color:var(--ink);border-color:var(--ink);cursor:pointer}
@@ -36,7 +36,8 @@ p.sub{margin:0 0 28px;color:var(--soft);font-size:1.05rem;max-width:44ch}
 .chip small{display:block;font-size:.72rem;font-weight:500;opacity:.8;margin-top:3px;max-width:26ch}
 .fx{position:fixed;top:-2.5rem;pointer-events:none;font-size:1.8rem;z-index:20;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(115vh) rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.fx{display:none}}
+.rain{position:fixed;top:0;pointer-events:none;z-index:0;opacity:.5;animation:drift linear forwards;will-change:transform}
+@keyframes drift{from{transform:translate(0,-3rem) rotate(0deg)}to{transform:translate(var(--sway,0px),112vh) rotate(40deg)}}
 .sum{list-style:none;padding:0;margin:0 0 28px;font-size:1.15rem}
 .sum li{padding:10px 0;border-bottom:2px dashed var(--line)}
 .sum b{display:inline-block;min-width:6.5em}
@@ -51,20 +52,25 @@ a.btn{display:inline-block;text-decoration:none}
 </main>
 <script>
 // ====== Personalize aqui ======
-const SEU_NOME = "Seu Nome";      // seu nome: aparece na mensagem que a pessoa envia pelo WhatsApp
+const SEU_NOME = "Seu Nome";          // seu nome: aparece na mensagem que a pessoa envia pelo WhatsApp
 const WHATSAPP_NUMERO = "";       // opcional: DDI+DDD+número, só dígitos (ex.: 5521999999999). Vazio = a pessoa escolhe o contato
+const MOSTRAR_FLORES = true;      // true = mostra a aba Flores; false = esconde a aba
+const IGNORAR_REDUZIR_MOVIMENTO = true; // true = mostra a chuva e o confete mesmo se o aparelho estiver com "reduzir movimento"
+const CHUVA_DE_EMOJIS = true;    // true = emojis caindo devagar no fundo; false = desliga
 const FRASES_NAO = [
   "Você tem certeza? 🥺",
   "Não gostaria de pensar melhor sobre isso? 🤔",
   "Te garanto que vou te tratar da melhor forma possível. 💜"
 ];
-const ETAPAS = [
+const ETAPAS_BASE = [
   {aba:"Convite", e:"💌"},
   {aba:"Dia", e:"📅", q:"Qual dia fica bom pra você?", s:"Sem pressão. Quer dizer, só um pouquinho.", o:["🌆 Sexta","🎉 Sábado","🛋️ Domingo","🤷 Você escolhe"]},
   {aba:"Programa", e:"🍿", q:"Vamos fazer o quê?", s:"Todas as opções incluem boa companhia.", o:["🍝 Jantar","🎬 Cinema","🍦 Sorvete","☕ Café","🚶 Caminhada","🎁 Surpresa","🏠 Minha casa, talvez?"]},
   {aba:"Horário", e:"⏰", q:"Que horas?", s:"Última pergunta, prometo.", o:["🌅 Manhã","🍽️ Almoço","☀️ Tarde","🌇 Início da noite","🌙 Depois das 21h"]},
+  {aba:"Flores", e:"🌹", flores:true, q:"Qual flor você prefere?", s:"Prometo que não vou esquecer.", o:["🌹 Rosas","🌻 Girassóis","🌷 Tulipas","💌 Te digo minha favorita por mensagem"]},
   {aba:"Pronto", e:"🎉"}
 ];
+const ETAPAS = ETAPAS_BASE.filter(e=>!e.flores||MOSTRAR_FLORES);
 // ==============================
 const NOTAS = {"🏠 Minha casa, talvez?":"Um filme, talvez um jogo a dois e mais privacidade pra gente."};
 const picks = [];
@@ -86,11 +92,11 @@ function render(){
       <p id="msg"></p>
       <div class="row"><button class="btn yes" id="yes">Sim 💖</button><button class="btn no" id="no">Não 🙈</button></div>`;
   } else if(step===ETAPAS.length-1){
-    const [dia,prog,hora] = picks;
-    const txt = `Aceito sim! 💜 Combinado: ${dia}, ${prog}, ${hora}. ${SEU_NOME}, já pode se preparar.`;
+    const [dia,prog,hora,flor] = picks;
+    const txt = `Aceito sim! 💜 Combinado: ${dia}, ${prog}, ${hora}${flor?`. Flores: ${flor}`:''}. ${SEU_NOME}, já pode se preparar.`;
     view.innerHTML = `<h1>Combinado! 🎉</h1>
       <p class="sub">Agora é oficial. Confere os detalhes:</p>
-      <ul class="sum"><li><b>📅 Dia</b>${dia}</li><li><b>🍿 Programa</b>${prog}</li><li><b>⏰ Horário</b>${hora}</li></ul>
+      <ul class="sum"><li><b>📅 Dia</b>${dia}</li><li><b>🍿 Programa</b>${prog}</li><li><b>⏰ Horário</b>${hora}</li>${flor?`<li><b>💐 Flores</b>${flor}</li>`:''}</ul>
       <a class="btn yes" target="_blank" rel="noopener" href="https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(txt)}">💬 Me avisar no WhatsApp</a>`;
   } else {
     view.innerHTML = `<h1>${e.q} ${e.e}</h1><p class="sub">${e.s}</p>
@@ -98,6 +104,7 @@ function render(){
   }
 }
 function burst(){
+  if(semMovimento()) return;
   const em=['💖','💜','🎉','✨','💘','🥰'];
   for(let i=0;i<28;i++){
     const s=document.createElement('span'); s.className='fx'; s.textContent=em[i%em.length];
@@ -134,6 +141,19 @@ document.addEventListener("click",ev=>{
     step=+t.dataset.tab; render();
   }
 });
+function semMovimento(){return !IGNORAR_REDUZIR_MOVIMENTO && matchMedia('(prefers-reduced-motion: reduce)').matches}
+const EMOJIS_CHUVA = ['💖','🌸','✨','💕','🌷','🦋','🧸','🍓'];
+function chuva(adiantar){
+  if(!CHUVA_DE_EMOJIS || semMovimento()) return;
+  const s=document.createElement('span'), d=10+Math.random()*7;
+  s.className='rain'; s.textContent=EMOJIS_CHUVA[Math.floor(Math.random()*EMOJIS_CHUVA.length)];
+  s.style.left=Math.random()*96+'vw'; s.style.fontSize=(1+Math.random()*.9)+'rem';
+  s.style.animationDuration=d+'s'; s.style.animationDelay=(adiantar?-Math.random()*d:0)+'s';
+  s.style.setProperty('--sway',(Math.random()*70-35)+'px');
+  document.body.appendChild(s); setTimeout(()=>s.remove(),d*1000+200);
+}
+for(let i=0;i<12;i++) chuva(true);
+setInterval(()=>chuva(false),1000);
 render();
 </script>
 </body>
